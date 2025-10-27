@@ -11,16 +11,10 @@ import org.datavec.api.transform.ui.HtmlAnalysis;
 import org.datavec.local.transforms.AnalyzeLocal;
 import org.deeplearning4j.core.storage.StatsStorage;
 import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator;
-import org.deeplearning4j.earlystopping.EarlyStoppingConfiguration;
-import org.deeplearning4j.earlystopping.EarlyStoppingResult;
-import org.deeplearning4j.earlystopping.scorecalc.DataSetLossCalculator;
-import org.deeplearning4j.earlystopping.termination.MaxEpochsTerminationCondition;
-import org.deeplearning4j.earlystopping.trainer.EarlyStoppingTrainer;
 import org.deeplearning4j.nn.api.OptimizationAlgorithm;
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
 import org.deeplearning4j.nn.conf.inputs.InputType;
-import org.deeplearning4j.nn.conf.layers.BatchNormalization;
 import org.deeplearning4j.nn.conf.layers.DenseLayer;
 import org.deeplearning4j.nn.conf.layers.OutputLayer;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
@@ -28,7 +22,6 @@ import org.deeplearning4j.nn.weights.WeightInit;
 import org.deeplearning4j.ui.api.UIServer;
 import org.deeplearning4j.ui.model.stats.StatsListener;
 import org.deeplearning4j.ui.model.storage.InMemoryStatsStorage;
-import org.deeplearning4j.util.ModelSerializer;
 import org.nd4j.evaluation.EvaluationAveraging;
 import org.nd4j.evaluation.classification.Evaluation;
 import org.nd4j.linalg.activations.Activation;
@@ -41,8 +34,8 @@ import java.util.Map;
 import java.util.Random;
 
 public class MultiLayerPerceptron {
-    private static final int BATCH_SIZE = 20;
-    private static final int EPOCH = 300;
+    private static final int BATCH_SIZE = 32;
+    private static final int EPOCH = 1000;
     public void multiLayerPerceptronModel() throws Exception {
         Random random = new Random();
         random.setSeed(0xC0FFE);
@@ -85,10 +78,10 @@ public class MultiLayerPerceptron {
         System.out.println(evaluation.stats());
         System.out.println("MCC: "+evaluation.matthewsCorrelation(EvaluationAveraging.Macro));
 
-        File modelSave = new File("src/main/resources/beag-model-v3.1.bin");
-        model.save(modelSave);
-        ModelSerializer.addObjectToFile(modelSave, "analysis", analysis.toJson());
-        ModelSerializer.addObjectToFile(modelSave, "schema", finalSchema.toJson());
+//        File modelSave = new File("src/main/resources/beag-model-v3.1.bin");
+//        model.save(modelSave);
+//        ModelSerializer.addObjectToFile(modelSave, "analysis", analysis.toJson());
+//        ModelSerializer.addObjectToFile(modelSave, "schema", finalSchema.toJson());
     }
 
     private Schema schema(){
@@ -120,9 +113,6 @@ public class MultiLayerPerceptron {
                 .build();
     }
     private MultiLayerConfiguration multiLayerNetworkConfig(Schema finalSchema){
-        int nIn = 9;
-        int nOut = 2;
-        int layerSize = 64;
         return new NeuralNetConfiguration.Builder()
                 .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
                 .seed(0xC0FFE)
@@ -130,8 +120,8 @@ public class MultiLayerPerceptron {
                 .updater(new Adam.Builder().learningRate(0.001).build())
                 .l2(0.000316)
                 .list()
-                .layer(new DenseLayer.Builder().nIn(9).nOut(64).activation(Activation.RELU).build())
-                .layer(new DenseLayer.Builder().nIn(64).nOut(64).activation(Activation.RELU).build())
+                .layer(new DenseLayer.Builder().nIn(finalSchema.numColumns() - 1).nOut(128).activation(Activation.RELU).build())
+                .layer(new DenseLayer.Builder().nIn(64).nOut(32).activation(Activation.RELU).build())
                 .layer(new OutputLayer.Builder(LossFunctions.LossFunction.MCXENT).nIn(64).nOut(2).activation(Activation.SOFTMAX).build())
                 .setInputType(InputType.feedForward(finalSchema.numColumns() - 1))
                 .build();
